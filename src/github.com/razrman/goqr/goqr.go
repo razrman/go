@@ -1,30 +1,39 @@
 package main
 
 import (
-    "flag"
-    "html/template"
-    "log"
-    "net/http"
+	"flag"
+	"html/template"
+	"log"
+	"net/http"
 )
 
 var addr = flag.String("addr", ":8080", "http service address") // Q=17, R=18
 
-var templ = template.Must(template.New("qr").Parse(templateStr))
+var templQr = template.Must(template.New("qr").Parse(templateStrQr))
+var templIm = template.Must(template.New("im").Parse(templateStrIm))
 
 func main() {
-    flag.Parse()
-    http.Handle("/", http.HandlerFunc(QR))
-    err := http.ListenAndServe(*addr, nil)
-    if err != nil {
-        log.Fatal("ListenAndServe:", err)
-    }
+	flag.Parse()
+	http.Handle("/", http.HandlerFunc(QR))
+	http.HandleFunc("/static/", func(w http.ResponseWriter, r *http.Request) {
+		    http.ServeFile(w, r, r.URL.Path[1:])
+	    })
+	err := http.ListenAndServe(*addr, nil)
+	if err != nil {
+		log.Fatal("ListenAndServe:", err)
+	}
 }
 
 func QR(w http.ResponseWriter, req *http.Request) {
-    templ.Execute(w, req.FormValue("s"))
+	templQr.Execute(w, req.FormValue("s"))
 }
 
-const templateStr = `
+func Image(w http.ResponseWriter, req *http.Request) {
+	templIm.Execute(w, req.FormValue("s"))
+}
+
+
+const templateStrQr = `
 <html>
 <head>
 <title>QR Link Generator</title>
@@ -45,3 +54,15 @@ value="Show QR" name=qr>
 </html>
 `
 
+const templateStrIm = `
+<html>
+<head>
+<title>Go draw example output</title>
+</head>
+<body>
+<br>
+<img src="static/out.png" />
+<br>
+</body>
+</html>
+`
